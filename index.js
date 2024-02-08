@@ -18,7 +18,9 @@ connectDB();
 const app = express();
 
 app.use(bodyParser.json());
-
+app.get('/', async (req, res) => {
+  res.send({ message: 'Connected Successfully!' })
+})
 app.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
   try {
