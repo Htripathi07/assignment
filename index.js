@@ -8,6 +8,10 @@ const bcrypt = require('bcryptjs');
 const Task = require('./models/Task');
 const authenticateUser = require('./middleware/authenticateUser');
 require('./reminderScheduler');
+const { sendToQueue } = require('./producer');
+const { consumeFromQueue } = require('./consumer');
+const redis = require('redis');
+const client = redis.createClient();
 
 connectDB();
 
@@ -119,5 +123,33 @@ app.post('/tasks', authenticateUser, async (req, res) => {
       res.status(500).send('Server Error');
     }
   });
+
+  // Route to get cached task data
+app.get('/cache/:taskId', (req, res) => {
+  const { taskId } = req.params;
+
+  // Check if task data is cached
+  client.get(`task:${taskId}`, (err, data) => {
+    if (err) {
+      console.error('Error retrieving task from cache:', err);
+      res.status(500).json({ error: 'Internal server error' });
+      return;
+    }
+
+    if (data) {
+      console.log('Task data retrieved from cache');
+      res.json(JSON.parse(data));
+    } else {
+      console.log('Task data not found in cache');
+      res.status(404).json({ error: 'Task data not found' });
+    }
+  });
+});
+
+  // Add task to the queue
+sendToQueue({ taskId: '123', taskData: 'Example task data' });
+
+// Start worker process to consume messages from the queue
+consumeFromQueue();
 
 app.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));
