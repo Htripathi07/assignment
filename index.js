@@ -58,27 +58,29 @@ app.post('/login', async (req, res) => {
 
 // Add task endpoint
 app.post('/tasks', authenticateUser, async (req, res) => {
-    try {
-      const { title, description, dueDate, status } = req.body;
-      // Convert dueDate string to Date object
-      const parsedDueDate = new Date(dueDate);
-      if (isNaN(parsedDueDate.getTime())) {
-        return res.status(400).json({ error: 'Invalid dueDate format. Please provide a valid date.' });
-      }
-      const task = new Task({
-        title,
-        description,
-        dueDate: parsedDueDate,
-        status,
-        user: req.user._id
-      });
-      await task.save();
-      res.status(201).json(task);
-    } catch (error) {
-      console.error(error.message);
-      res.status(500).send('Server Error');
+  try {
+    const { title, description, dueDate, status } = req.body;
+    // Convert dueDate string to Date object
+    const parsedDueDate = new Date(dueDate);
+    if (isNaN(parsedDueDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid dueDate format. Please provide a valid date.' });
     }
-  });
+    const task = new Task({
+      title,
+      description,
+      dueDate: parsedDueDate,
+      status,
+      user: req.user._id
+    });
+    await task.save();
+    // Send task data to the queue
+    sendToQueue({ taskId: task._id, taskData: task });
+    res.status(201).json(task);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server Error');
+  }
+});
   
   // Update task endpoint
   app.put('/tasks/:id', authenticateUser, async (req, res) => {
@@ -147,7 +149,7 @@ app.get('/cache/:taskId', (req, res) => {
 });
 
   // Add task to the queue
-sendToQueue({ taskId: '123', taskData: 'Example task data' });
+sendToQueue({ taskId: '123', taskData: 'Task data' });
 
 // Start worker process to consume messages from the queue
 consumeFromQueue();
