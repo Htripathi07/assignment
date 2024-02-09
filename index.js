@@ -12,12 +12,16 @@ const { sendToQueue } = require('./producer');
 const { consumeFromQueue } = require('./consumer');
 const redis = require('redis');
 const client = redis.createClient();
+const cors = require('cors');
 
 connectDB();
 
 const app = express();
 
 app.use(bodyParser.json());
+app.use(cors());
+
+
 app.get('/', async (req, res) => {
   res.send({ message: 'Connected Successfully!' })
 })
